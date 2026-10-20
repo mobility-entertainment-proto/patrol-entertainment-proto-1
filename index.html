@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#057b7a">
-<title>PatrolTouch ねぎらい</title>
+<title>パトログ ねぎらい</title>
 <style>
   :root {
     --primary: #057b7a;
@@ -96,7 +96,7 @@
 <body>
   <header>
     <button class="icon-btn" aria-label="メニュー"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></button>
-    <div class="brand">PatrolTouch</div>
+    <div class="brand">パトログ</div>
     <div class="head-icons">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -161,6 +161,8 @@
 <script>
   const USER_ID = 'taro.yamada@example.com';
   const STORE_KEY = 'patrol-thanks-v1';
+  const RECENT_KEY = 'patrol-thanks-recent-v1';
+  const RECENT_MAX = 15;   // 最近出た言葉はこの件数ぶん出さない
   const RARE_RATE = 0.12;
   const PLACE = { lat: 35.681, lon: 139.767 };   // 天気を見る場所（東京）
   const $ = (id) => document.getElementById(id);
@@ -169,32 +171,51 @@
   // ---- ねぎらいの言葉 ----
   // ON（上番・巡回）の時間帯別
   const ON_BY_TIME = {
-    early:   ['朝早くからありがとうございます。今日も一日、よろしくお願いします。', '夜明け前からの見回り、本当にありがとうございます。', 'まだ静かな時間帯ですね。足元に気をつけて。'],
-    morning: ['おはようございます！今日もよろしくお願いします。', '朝の巡回ありがとうございます。いい一日になりますように。', '朝いちばんの確認、助かります。'],
-    day:     ['巡回ありがとうございます。いつも助かっています。', '昼間の見回り、おつかれさまです。こまめに休憩を。', '丁寧なチェック、ありがとうございます。'],
-    evening: ['夕方の巡回ありがとうございます。暗くなる前の確認、助かります。', 'もうひと頑張り、無理せずいきましょう。', '一日の後半もありがとうございます。'],
-    night:   ['夜の見回り、ありがとうございます。足元に気をつけて。', '夜遅くまでおつかれさまです。皆さんが安心して過ごせています。', '暗い中の確認、本当にありがとうございます。'],
-    late:    ['深夜の巡回、本当におつかれさまです。', 'みんなが眠っている間も守ってくれてありがとうございます。', '眠気に負けず、ありがとうございます。温かい飲み物でひと息を。'],
+    early:   ['朝早くからありがとうございます。今日も一日、よろしくお願いします。', '夜明け前からの見回り、本当にありがとうございます。', 'まだ静かな時間帯ですね。足元に気をつけて。', '早起きおつかれさまです。朝の空気、気持ちいいですね。', '一番乗りの見回り、ありがとうございます。', '朝の静けさを守ってくれてありがとうございます。'],
+    morning: ['おはようございます！今日もよろしくお願いします。', '朝の巡回ありがとうございます。いい一日になりますように。', '朝いちばんの確認、助かります。', 'みんなが出勤してくる前の確認、ありがとうございます。', '今日もいいスタートですね。', '朝の見回りで一日が安心して始まります。'],
+    day:     ['巡回ありがとうございます。いつも助かっています。', '昼間の見回り、おつかれさまです。こまめに休憩を。', '丁寧なチェック、ありがとうございます。', 'お昼ごはんはしっかり食べられましたか？', '人の多い時間帯の巡回、ありがとうございます。', 'いいペースですね。午後もよろしくお願いします。'],
+    evening: ['夕方の巡回ありがとうございます。暗くなる前の確認、助かります。', 'もうひと頑張り、無理せずいきましょう。', '一日の後半もありがとうございます。', '日が傾いてきましたね。足元に気をつけて。', '夕方の見回り、いつも助かっています。', 'あと少し、いっしょにがんばりましょう。'],
+    night:   ['夜の見回り、ありがとうございます。足元に気をつけて。', '夜遅くまでおつかれさまです。皆さんが安心して過ごせています。', '暗い中の確認、本当にありがとうございます。', '夜の静かな時間を守ってくれてありがとうございます。', 'ライトの準備は大丈夫ですか？気をつけて回ってくださいね。', '夜の巡回、心強いです。'],
+    late:    ['深夜の巡回、本当におつかれさまです。', 'みんなが眠っている間も守ってくれてありがとうございます。', '眠気に負けず、ありがとうございます。温かい飲み物でひと息を。', '深夜の見回りがあるから、みんな安心して眠れています。', '夜明けまであと少し。無理せずいきましょう。', '静かな夜をありがとうございます。'],
   };
+  // ON でいつでも使える言葉
+  const ON_GENERAL = [
+    'いつもありがとうございます。あなたの巡回が現場を守っています。',
+    '確認ありがとうございます。今日もばっちりです。',
+    '一つひとつの確認が、みんなの安心につながっています。',
+    'ナイス巡回！この調子でいきましょう。',
+    '見えないところまで気を配ってくれてありがとうございます。',
+    '今日も現場の安全を守ってくれて、ありがとうございます。',
+    '無理せず、自分のペースでいきましょう。',
+    'しっかり記録できました。いつも正確でたすかります。',
+    '小さな異変に気づけるのは、毎日の巡回のおかげです。',
+    '背筋がのびる見回り、ありがとうございます。',
+    '疲れたら深呼吸をひとつ。いつもありがとうございます。',
+    '今日のあなたの見回りに、感謝しています。',
+  ];
   // OFF（下番）
   const OFF_WORDS = [
     '今日も一日おつかれさまでした！ゆっくり休んでください。',
     '無事に勤務完了ですね。本当にありがとうございました。',
     'おつかれさまでした。気をつけてお帰りください。',
     '今日も現場を守ってくれてありがとうございました。',
+    '勤務完了です。今日もよくがんばりました！',
+    'おつかれさまでした。おいしいごはんで、ゆっくり休んでくださいね。',
+    '今日の勤務が無事に終わりました。ありがとうございました。',
+    'しっかり休んで、また元気な顔を見せてください。',
   ];
   const OFF_LATE = ['夜通しの勤務、本当におつかれさまでした。しっかり休んでくださいね。'];
   // 天気
   const BY_WEATHER = {
-    rain: ['雨の中の巡回、ありがとうございます。滑りやすいので気をつけて。', '雨の日の見回り、本当におつかれさまです。'],
-    hot:  ['暑い中ありがとうございます。こまめに水分補給を。', '猛暑の中の巡回、本当におつかれさまです。日陰で休憩してください。'],
-    cold: ['寒い中ありがとうございます。手袋で手元を温かくしてくださいね。', '冷え込む中の見回り、おつかれさまです。'],
+    rain: ['雨の中の巡回、ありがとうございます。滑りやすいので気をつけて。', '雨の日の見回り、本当におつかれさまです。', '足元がぬれていませんか？雨の日もありがとうございます。', '雨の日は視界が悪いので、ゆっくり安全に回ってくださいね。'],
+    hot:  ['暑い中ありがとうございます。こまめに水分補給を。', '猛暑の中の巡回、本当におつかれさまです。日陰で休憩してください。', '熱中症に気をつけて。冷たい飲み物でひと休みを。'],
+    cold: ['寒い中ありがとうございます。手袋で手元を温かくしてくださいね。', '冷え込む中の見回り、おつかれさまです。', '寒い日の巡回、本当にありがとうございます。温かくしてくださいね。'],
     wind: ['風が強い中ありがとうございます。飛来物に気をつけて。'],
   };
   // 回数
   const BY_COUNT = {
     first: ['本日最初の記録です。今日もよろしくお願いします！'],
-    many:  (n) => [`本日${n}回目の記録です。積み重ねが現場の安心につながっています。`, `今日はもう${n}回目。いいペースです、無理せずいきましょう。`],
+    many:  (n) => [`本日${n}回目の記録です。積み重ねが現場の安心につながっています。`, `今日はもう${n}回目。いいペースです、無理せずいきましょう。`, `${n}回目の確認、おつかれさまです。`],
   };
   // レア：住民・管理者からのお礼（デモ用の架空メッセージ）
   const RARE = [
@@ -258,23 +279,40 @@
   }
 
   // 状況から言葉の候補を集めて、1つ選ぶ
-  function chooseWords(ctx, exclude) {
+  // 最近出た言葉（このブラウザ内にだけ保存）
+  function loadRecent() { try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch { return []; } }
+  function remember(words) {
+    const r = [words, ...loadRecent().filter(x => x !== words)].slice(0, RECENT_MAX);
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(r)); } catch {}
+  }
+  // 最近出ていないものから選ぶ。全部出ていたら、いちばん前に出たものから選ぶ
+  function freshPick(items, key = (x) => x) {
+    const recent = loadRecent();
+    const fresh = items.filter(x => !recent.includes(key(x)));
+    if (fresh.length) return pick(fresh);
+    return [...items].sort((a, b) => recent.indexOf(key(b)) - recent.indexOf(key(a)))[0];
+  }
+
+  function chooseWords(ctx) {
+    let w;
     if (Math.random() < RARE_RATE) {
-      const r = pick(RARE.filter(x => x.words !== exclude) );
-      return { ...r, rare: true, label: 'ありがとうが届いています', icon: 'heart' };
-    }
-    const pool = [];
-    const add = (words, label, icon, weight = 1) => words.forEach(w => { for (let i = 0; i < weight; i++) pool.push({ words: w, label, icon }); });
-    if (ctx.kind === 'OFF') {
-      add(ctx.band.key === 'late' || ctx.band.key === 'early' ? [...OFF_LATE, ...OFF_WORDS] : OFF_WORDS, '勤務おつかれさまでした', 'home', 2);
+      w = { ...freshPick(RARE, x => x.words), rare: true, label: 'ありがとうが届いています', icon: 'heart' };
     } else {
-      add(ON_BY_TIME[ctx.band.key], `${ctx.band.name}の巡回ありがとうございます`, ctx.band.icon, 2);
-      if (ctx.count === 1) add(BY_COUNT.first, '本日最初の記録', 'shield', 2);
-      if (ctx.count >= 3) add(BY_COUNT.many(ctx.count), `本日${ctx.count}回目の記録`, 'shield', 1);
+      const pool = [];
+      const add = (words, label, icon) => words.forEach(x => pool.push({ words: x, label, icon }));
+      if (ctx.kind === 'OFF') {
+        add(ctx.band.key === 'late' || ctx.band.key === 'early' ? [...OFF_LATE, ...OFF_WORDS] : OFF_WORDS, '勤務おつかれさまでした', 'home');
+      } else {
+        add(ON_BY_TIME[ctx.band.key], `${ctx.band.name}の巡回ありがとうございます`, ctx.band.icon);
+        add(ON_GENERAL, '巡回ありがとうございます', 'shield');
+        if (ctx.count === 1) add(BY_COUNT.first, '本日最初の記録', 'shield');
+        if (ctx.count >= 3) add(BY_COUNT.many(ctx.count), `本日${ctx.count}回目の記録`, 'shield');
+      }
+      if (ctx.weather.kind) add(BY_WEATHER[ctx.weather.kind], { rain: '雨の日もありがとうございます', hot: '暑い中ありがとうございます', cold: '寒い中ありがとうございます', wind: '風の強い日もありがとうございます' }[ctx.weather.kind], ctx.weather.kind);
+      w = freshPick(pool, x => x.words);
     }
-    if (ctx.weather.kind) add(BY_WEATHER[ctx.weather.kind], { rain: '雨の日もありがとうございます', hot: '暑い中ありがとうございます', cold: '寒い中ありがとうございます', wind: '風の強い日もありがとうございます' }[ctx.weather.kind], ctx.weather.kind, 3);
-    const choices = pool.filter(p => p.words !== exclude);
-    return pick(choices.length ? choices : pool);
+    remember(w.words);
+    return w;
   }
 
   function renderThanks(w, ctx) {
@@ -313,7 +351,7 @@
 
   $('btnOn').addEventListener('click', () => register('ON'));
   $('btnOff').addEventListener('click', () => register('OFF'));
-  $('btnMore').addEventListener('click', () => { if (lastCtx) renderThanks(chooseWords(lastCtx, $('thanksWords').textContent), lastCtx); });
+  $('btnMore').addEventListener('click', () => { if (lastCtx) renderThanks(chooseWords(lastCtx), lastCtx); });
   $('btnBack').addEventListener('click', () => {
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-form'));
     window.scrollTo(0, 0);
