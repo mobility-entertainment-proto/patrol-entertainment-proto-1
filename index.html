@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#057b7a">
+<title>PatrolTouch ねぎらい</title>
+<style>
+  :root {
+    --primary: #057b7a;
+    --primary-dark: #04605f;
+    --ok: #2bb24c;
+    --navy: #214d60;
+    --text: #222;
+    --muted: #5f6b6b;
+    --line: #8a8a8a;
+    --bg: #f4f7f7;
+    --footer: #e6eeee;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    color: var(--text); background: var(--bg);
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  header {
+    background: var(--primary); color: #fff; display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px; padding-top: calc(8px + env(safe-area-inset-top)); position: sticky; top: 0; z-index: 10;
+  }
+  .icon-btn { background: none; border: 0; color: inherit; padding: 4px; cursor: pointer; display: flex; }
+  .brand { font-size: 20px; flex: 1; letter-spacing: .5px; }
+  .head-icons { display: flex; gap: 6px; }
+
+  main { flex: 1; width: 100%; max-width: 480px; margin: 0 auto; padding: 24px 24px 40px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* 入力画面（パトログと同じ構成） */
+  .point { text-align: center; margin: 8px 0 22px; }
+  .point .no { font-size: 26px; font-weight: 500; letter-spacing: 1px; }
+  .point .place { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .field { display: grid; grid-template-columns: 84px 1fr; align-items: end; gap: 12px; margin-bottom: 18px; }
+  .field label { text-align: right; font-size: 15px; padding-bottom: 6px; }
+  .field input, .field .value { font: inherit; font-size: 15px; color: var(--text); border: 0; border-bottom: 1px solid var(--line); background: transparent; padding: 6px 0; width: 100%; min-width: 0; border-radius: 0; outline: none; }
+  .field input:focus { border-bottom: 2px solid var(--primary); padding-bottom: 5px; }
+  .field .value { word-break: break-all; }
+  .actions { margin-top: 36px; display: grid; gap: 14px; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 10px; font: inherit; font-size: 20px; letter-spacing: 2px; height: 56px; border-radius: 4px; cursor: pointer; border: 2px solid var(--primary); width: 100%; }
+  .btn:active { transform: scale(.99); }
+  .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.2); }
+  .btn-outline { background: #fff; color: var(--primary); }
+  .btn-sm { font-size: 16px; letter-spacing: 0; height: 48px; }
+
+  /* 完了画面 */
+  .done { text-align: center; padding-top: 18px; }
+  .stamp { display: inline-flex; align-items: center; gap: 6px; }
+  .stamp svg { width: 44px; height: 44px; }
+  .stamp .tag { background: var(--ok); color: #fff; font-size: 30px; font-weight: 700; border-radius: 8px; padding: 2px 18px; letter-spacing: 1px; animation: pop .45s cubic-bezier(.2,1.7,.4,1); }
+  .stamp .tag.off { background: var(--navy); }
+  .stamp path.check { stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw .4s .15s ease-out forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @keyframes pop { from { transform: scale(.4); } }
+  .done .msg { font-size: 14px; margin: 12px 0 22px; }
+
+  /* ねぎらいカード */
+  .thanks { position: relative; background: #fff; border-radius: 16px; padding: 18px 18px 14px; text-align: left; box-shadow: 0 4px 14px rgba(5,123,122,.14); border-top: 6px solid var(--primary); animation: rise .6s .25s cubic-bezier(.2,1.2,.4,1) backwards; }
+  @keyframes rise { from { transform: translateY(24px); } }
+  .thanks.rare { border-top-color: #e0a800; background: linear-gradient(#fffaf0, #fff); }
+  .thanks .head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .thanks .pic { width: 56px; height: 56px; flex: 0 0 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #e3f2f1; }
+  .thanks.rare .pic { background: #fff1c9; }
+  .thanks .pic svg { width: 34px; height: 34px; }
+  .thanks .label { font-size: 12px; font-weight: 700; color: var(--primary); }
+  .thanks.rare .label { color: #9a6b00; }
+  .thanks .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .thanks .chip { font-size: 11px; background: #eef4f4; color: var(--muted); border-radius: 999px; padding: 2px 8px; }
+  .thanks .words { font-size: 18px; font-weight: 700; line-height: 1.6; min-height: 58px; }
+  .thanks .from { text-align: right; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .thanks .more { display: block; margin: 8px 0 0 auto; background: none; border: 0; color: var(--primary); font: inherit; font-size: 12px; cursor: pointer; }
+  .sparkle { position: absolute; color: #f1c40f; font-size: 16px; animation: tw 1.6s ease-in-out infinite; }
+  @keyframes tw { 50% { opacity: .2; transform: scale(.6); } }
+
+  .summary { background: #fff; border-radius: 6px; padding: 14px 18px; text-align: left; font-size: 14px; margin: 18px 0 22px; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .summary dl { display: grid; grid-template-columns: 84px 1fr; gap: 8px 12px; margin: 0; }
+  .summary dt { color: var(--muted); }
+  .summary dd { margin: 0; word-break: break-all; }
+
+  footer { background: var(--footer); padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); font-size: 14px; }
+  footer nav { display: flex; flex-wrap: wrap; gap: 8px 0; }
+  footer nav a { color: var(--primary-dark); text-decoration: none; padding: 0 12px; border-left: 1px solid #9bb; }
+  footer nav a:first-child { border-left: 0; padding-left: 0; }
+  footer .copy { color: #889; text-align: center; margin-top: 16px; font-size: 12px; }
+</style>
+</head>
+<body>
+  <header>
+    <button class="icon-btn" aria-label="メニュー"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></button>
+    <div class="brand">PatrolTouch</div>
+    <div class="head-icons">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+    </div>
+  </header>
+
+  <main>
+    <!-- 入力画面 -->
+    <section class="screen active" id="screen-form">
+      <div class="point">
+        <div class="no" id="pointNo">15838</div>
+        <div class="place" id="pointPlace">A棟 1F 正面玄関</div>
+      </div>
+      <div class="field"><label>ユーザーID</label><div class="value" id="userId"></div></div>
+      <div class="field"><label>カード番号</label><div class="value">000304</div></div>
+      <div class="field"><label for="comment">コメント</label><input id="comment" type="text" autocomplete="off"></div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btnOn">ON</button>
+        <button class="btn btn-outline" id="btnOff">OFF</button>
+      </div>
+    </section>
+
+    <!-- 完了画面 -->
+    <section class="screen" id="screen-done">
+      <div class="done">
+        <div class="stamp">
+          <svg viewBox="0 0 44 44"><path class="check" d="M6 23 l10 10 L38 9" fill="none" stroke="var(--ok)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="tag" id="tag">ON</span>
+        </div>
+        <p class="msg">登録が完了しました。</p>
+
+        <div class="thanks" id="thanks">
+          <div class="head">
+            <div class="pic" id="thanksPic"></div>
+            <div>
+              <div class="label" id="thanksLabel"></div>
+              <div class="chips" id="thanksChips"></div>
+            </div>
+          </div>
+          <div class="words" id="thanksWords"></div>
+          <div class="from" id="thanksFrom"></div>
+          <button class="more" id="btnMore">ほかの言葉も見る ›</button>
+        </div>
+
+        <div class="summary">
+          <dl>
+            <dt>日時</dt><dd id="sumTime"></dd>
+            <dt>場所</dt><dd id="sumPlace"></dd>
+            <dt>本日の記録</dt><dd id="sumCount"></dd>
+          </dl>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btnBack">戻る</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <nav><a href="#">利用規約</a><a href="#">プライバシーポリシー</a><a href="#">ウェブアクセシビリティ</a></nav>
+    <div class="copy">Prototype — 実際の登録は行われません</div>
+  </footer>
+
+<script>
+  const USER_ID = 'taro.yamada@example.com';
+  const STORE_KEY = 'patrol-thanks-v1';
+  const RARE_RATE = 0.12;
+  const PLACE = { lat: 35.681, lon: 139.767 };   // 天気を見る場所（東京）
+  const $ = (id) => document.getElementById(id);
+  $('userId').textContent = USER_ID;
+
+  // ---- ねぎらいの言葉 ----
+  // ON（上番・巡回）の時間帯別
+  const ON_BY_TIME = {
+    early:   ['朝早くからありがとうございます。今日も一日、よろしくお願いします。', '夜明け前からの見回り、本当にありがとうございます。', 'まだ静かな時間帯ですね。足元に気をつけて。'],
+    morning: ['おはようございます！今日もよろしくお願いします。', '朝の巡回ありがとうございます。いい一日になりますように。', '朝いちばんの確認、助かります。'],
+    day:     ['巡回ありがとうございます。いつも助かっています。', '昼間の見回り、おつかれさまです。こまめに休憩を。', '丁寧なチェック、ありがとうございます。'],
+    evening: ['夕方の巡回ありがとうございます。暗くなる前の確認、助かります。', 'もうひと頑張り、無理せずいきましょう。', '一日の後半もありがとうございます。'],
+    night:   ['夜の見回り、ありがとうございます。足元に気をつけて。', '夜遅くまでおつかれさまです。皆さんが安心して過ごせています。', '暗い中の確認、本当にありがとうございます。'],
+    late:    ['深夜の巡回、本当におつかれさまです。', 'みんなが眠っている間も守ってくれてありがとうございます。', '眠気に負けず、ありがとうございます。温かい飲み物でひと息を。'],
+  };
+  // OFF（下番）
+  const OFF_WORDS = [
+    '今日も一日おつかれさまでした！ゆっくり休んでください。',
+    '無事に勤務完了ですね。本当にありがとうございました。',
+    'おつかれさまでした。気をつけてお帰りください。',
+    '今日も現場を守ってくれてありがとうございました。',
+  ];
+  const OFF_LATE = ['夜通しの勤務、本当におつかれさまでした。しっかり休んでくださいね。'];
+  // 天気
+  const BY_WEATHER = {
+    rain: ['雨の中の巡回、ありがとうございます。滑りやすいので気をつけて。', '雨の日の見回り、本当におつかれさまです。'],
+    hot:  ['暑い中ありがとうございます。こまめに水分補給を。', '猛暑の中の巡回、本当におつかれさまです。日陰で休憩してください。'],
+    cold: ['寒い中ありがとうございます。手袋で手元を温かくしてくださいね。', '冷え込む中の見回り、おつかれさまです。'],
+    wind: ['風が強い中ありがとうございます。飛来物に気をつけて。'],
+  };
+  // 回数
+  const BY_COUNT = {
+    first: ['本日最初の記録です。今日もよろしくお願いします！'],
+    many:  (n) => [`本日${n}回目の記録です。積み重ねが現場の安心につながっています。`, `今日はもう${n}回目。いいペースです、無理せずいきましょう。`],
+  };
+  // レア：住民・管理者からのお礼（デモ用の架空メッセージ）
+  const RARE = [
+    { words: 'いつも見回りありがとうございます。夜も安心して眠れます。', from: '3階の住人より' },
+    { words: '先日は落とし物を届けてくださり、ありがとうございました！', from: '管理組合より' },
+    { words: '笑顔であいさつしてくれるので、朝から元気をもらっています。', from: '1階の店舗スタッフより' },
+    { words: 'いつも丁寧な報告、助かっています。ありがとうございます。', from: '管理担当者より' },
+    { words: 'いつもありがとう！警備員さん、かっこいいです。', from: '近所の小学生より' },
+  ];
+
+  const ICONS = {
+    sun:   '<svg viewBox="0 0 24 24" fill="#f5a623"><circle cx="12" cy="12" r="5"/><g stroke="#f5a623" stroke-width="2" stroke-linecap="round"><path d="M12 1v3M12 20v3M1 12h3M20 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></g></svg>',
+    moon:  '<svg viewBox="0 0 24 24" fill="#5b6bbf"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4a8.5 8.5 0 1 0 11.5 11.5z"/></svg>',
+    rain:  '<svg viewBox="0 0 24 24"><path d="M7 15h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 8a3.5 3.5 0 0 0 1 7z" fill="#9fb3c8"/><g stroke="#3b8fe0" stroke-width="2" stroke-linecap="round"><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></g></svg>',
+    hot:   '<svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v8.3a5 5 0 1 0 6 0V5a3 3 0 0 0-3-3z" fill="#ffd1c7"/><circle cx="12" cy="17" r="3" fill="#e74c3c"/><rect x="11" y="7" width="2" height="9" fill="#e74c3c"/></svg>',
+    cold:  '<svg viewBox="0 0 24 24" stroke="#4aa3df" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 4l3 2 3-2M9 20l3-2 3 2"/></svg>',
+    wind:  '<svg viewBox="0 0 24 24" fill="none" stroke="#7f8c8d" stroke-width="2" stroke-linecap="round"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h8"/></svg>',
+    heart: '<svg viewBox="0 0 24 24" fill="#e0a800"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 5 6.4 5c2 0 3.6 1.1 4.4 2.6h2.4C14 6.1 15.6 5 17.6 5 21 5 23.1 8.4 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>',
+    shield:'<svg viewBox="0 0 24 24" fill="#057b7a"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3zm-1.5 14.5-4-4 1.4-1.4 2.6 2.6 5.6-5.6 1.4 1.4-7 7z"/></svg>',
+    home:  '<svg viewBox="0 0 24 24" fill="#214d60"><path d="M12 3 2 12h3v8h5v-6h4v6h5v-8h3z"/></svg>',
+  };
+
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  function nowParts() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return { d, ymd: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, label: `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}` };
+  }
+  function timeBand(h) {
+    if (h >= 4 && h < 7) return { key: 'early', name: '早朝', icon: 'sun' };
+    if (h >= 7 && h < 10) return { key: 'morning', name: '朝', icon: 'sun' };
+    if (h >= 10 && h < 15) return { key: 'day', name: '日中', icon: 'sun' };
+    if (h >= 15 && h < 19) return { key: 'evening', name: '夕方', icon: 'sun' };
+    if (h >= 19 && h < 23) return { key: 'night', name: '夜', icon: 'moon' };
+    return { key: 'late', name: '深夜', icon: 'moon' };
+  }
+
+  // 今日の記録回数（このブラウザ内にだけ保存）
+  function loadLog() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { return {}; } }
+  function countToday(ymd) {
+    const log = loadLog();
+    log[ymd] = (log[ymd] || 0) + 1;
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(log)); } catch {}
+    return log[ymd];
+  }
+
+  // 天気（Open-Meteo。取れなければ天気の言葉は使わない）
+  let weatherCache = null;
+  async function getWeather() {
+    if (weatherCache) return weatherCache;
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${PLACE.lat}&longitude=${PLACE.lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=Asia%2FTokyo`;
+      const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 3000);
+      const c = (await (await fetch(url, { signal: ctrl.signal })).json()).current;
+      const code = c.weather_code;
+      const kind = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95 ? 'rain'
+        : c.temperature_2m >= 30 ? 'hot' : c.temperature_2m <= 5 ? 'cold' : c.wind_speed_10m >= 30 ? 'wind' : null;
+      weatherCache = { kind, temp: Math.round(c.temperature_2m) };
+    } catch { weatherCache = { kind: null }; }
+    return weatherCache;
+  }
+
+  // 状況から言葉の候補を集めて、1つ選ぶ
+  function chooseWords(ctx, exclude) {
+    if (Math.random() < RARE_RATE) {
+      const r = pick(RARE.filter(x => x.words !== exclude) );
+      return { ...r, rare: true, label: 'ありがとうが届いています', icon: 'heart' };
+    }
+    const pool = [];
+    const add = (words, label, icon, weight = 1) => words.forEach(w => { for (let i = 0; i < weight; i++) pool.push({ words: w, label, icon }); });
+    if (ctx.kind === 'OFF') {
+      add(ctx.band.key === 'late' || ctx.band.key === 'early' ? [...OFF_LATE, ...OFF_WORDS] : OFF_WORDS, '勤務おつかれさまでした', 'home', 2);
+    } else {
+      add(ON_BY_TIME[ctx.band.key], `${ctx.band.name}の巡回ありがとうございます`, ctx.band.icon, 2);
+      if (ctx.count === 1) add(BY_COUNT.first, '本日最初の記録', 'shield', 2);
+      if (ctx.count >= 3) add(BY_COUNT.many(ctx.count), `本日${ctx.count}回目の記録`, 'shield', 1);
+    }
+    if (ctx.weather.kind) add(BY_WEATHER[ctx.weather.kind], { rain: '雨の日もありがとうございます', hot: '暑い中ありがとうございます', cold: '寒い中ありがとうございます', wind: '風の強い日もありがとうございます' }[ctx.weather.kind], ctx.weather.kind, 3);
+    const choices = pool.filter(p => p.words !== exclude);
+    return pick(choices.length ? choices : pool);
+  }
+
+  function renderThanks(w, ctx) {
+    $('thanks').classList.toggle('rare', !!w.rare);
+    $('thanks').querySelectorAll('.sparkle').forEach(e => e.remove());
+    if (w.rare) ['top:10px;right:14px', 'top:34px;right:40px;animation-delay:.5s', 'bottom:16px;left:12px;animation-delay:1s'].forEach(st => $('thanks').insertAdjacentHTML('beforeend', `<span class="sparkle" style="${st}">✦</span>`));
+    $('thanksPic').innerHTML = ICONS[w.icon] || ICONS.shield;
+    $('thanksLabel').textContent = w.label;
+    const chips = [ctx.band.name, ctx.kind === 'ON' ? `本日${ctx.count}回目` : '勤務終了'];
+    if (ctx.weather.temp !== undefined) chips.push(`${ctx.weather.temp}℃`);
+    $('thanksChips').innerHTML = chips.map(c => `<span class="chip">${c}</span>`).join('');
+    $('thanksWords').textContent = w.words;
+    $('thanksFrom').textContent = w.from ? `― ${w.from}` : '';
+  }
+
+  let lastCtx = null;
+  async function register(kind) {
+    const t = nowParts();
+    const count = countToday(t.ymd);
+    $('tag').textContent = kind;
+    $('tag').classList.toggle('off', kind === 'OFF');
+    $('sumTime').textContent = t.label;
+    $('sumPlace').textContent = `${$('pointPlace').textContent}（No.${$('pointNo').textContent}）`;
+    $('sumCount').textContent = `${count}回目`;
+    $('thanksWords').textContent = '';
+    $('thanksLabel').textContent = '';
+    $('thanksChips').innerHTML = '';
+    $('thanksPic').innerHTML = ICONS.shield;
+    $('thanksFrom').textContent = '';
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-done'));
+    window.scrollTo(0, 0);
+    const weather = await getWeather();
+    lastCtx = { kind, band: timeBand(t.d.getHours()), count, weather };
+    renderThanks(chooseWords(lastCtx), lastCtx);
+  }
+
+  $('btnOn').addEventListener('click', () => register('ON'));
+  $('btnOff').addEventListener('click', () => register('OFF'));
+  $('btnMore').addEventListener('click', () => { if (lastCtx) renderThanks(chooseWords(lastCtx, $('thanksWords').textContent), lastCtx); });
+  $('btnBack').addEventListener('click', () => {
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-form'));
+    window.scrollTo(0, 0);
+  });
+</script>
+</body>
+</html>
